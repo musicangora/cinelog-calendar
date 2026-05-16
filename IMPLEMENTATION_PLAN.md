@@ -108,6 +108,31 @@
 - storyは最低でも `default` `empty` `loading不要なら省略` `long text` `edge case` のうち必要なものを持つ
 - PRレビューではアプリ起動確認より先にStorybookで見た目と状態差分を見る
 
+### Issueラベル運用
+
+- 着手状況のラベルは以下を使う
+- `status:todo`
+- `status:doing`
+- `status:review`
+- `status:blocked`
+- `status:done`
+
+- フェーズ識別のラベルは以下を使う
+- `phase:0`
+- `phase:1`
+- `phase:2`
+- `phase:3`
+
+- 運用ルール
+- `status:*` は1issueにつき1つだけ付ける
+- `phase:*` は1issueにつき1つだけ付ける
+- issue作成直後は `status:todo` を付ける
+- 実装を始めたら `status:doing` に切り替える
+- PRを作ってレビュー待ちに入ったら `status:review` に切り替える
+- 依存や障害で進められない場合は `status:blocked` に切り替える
+- マージ完了またはタスク完了時に `status:done` に切り替える
+- `status:blocked` を外したら、元の進行状態に応じて `status:doing` か `status:review` に戻す
+
 ### Team Flow
 
 - レーンA: 基盤担当。初期化、型、Repository、DB
