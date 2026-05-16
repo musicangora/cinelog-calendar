@@ -76,6 +76,10 @@ type MovieLog = {
 - ローカル保存は `expo-sqlite`
 - 将来的なクラウドSQLite移行を見越して、UIから直接DBを触らず保存層を分離する
 
+## 実装計画
+
+- 実装の進め方とPR分解は [IMPLEMENTATION_PLAN.md](/Users/miiya/Develop/cinelog-calendar/IMPLEMENTATION_PLAN.md) を参照
+
 ## 今後の拡張候補
 
 - 検索
