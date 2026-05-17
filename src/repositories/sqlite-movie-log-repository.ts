@@ -19,11 +19,15 @@ type MovieLogRow = {
   updated_at: string;
 };
 
+const WATCHED_ON_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const WATCHED_ON_MONTH_PATTERN = /^\d{4}-\d{2}$/;
+
 export class SQLiteMovieLogRepository implements MovieLogRepository {
   constructor(private readonly database: SQLiteDatabase) {}
 
   async listByDate(date: string): Promise<MovieLog[]> {
     this.assertDatabaseReady();
+    assertWatchedOnDate(date);
 
     const rows = await this.database.getAllAsync<MovieLogRow>(
       `SELECT * FROM movie_logs
@@ -37,12 +41,14 @@ export class SQLiteMovieLogRepository implements MovieLogRepository {
 
   async listByMonth(month: string): Promise<MovieLog[]> {
     this.assertDatabaseReady();
+    const [monthStart, nextMonthStart] = createWatchedOnMonthRange(month);
 
     const rows = await this.database.getAllAsync<MovieLogRow>(
       `SELECT * FROM movie_logs
-       WHERE watched_on LIKE ?
+       WHERE watched_on >= ?
+         AND watched_on < ?
        ORDER BY watched_on DESC, created_at DESC`,
-      [`${month}%`]
+      [monthStart, nextMonthStart]
     );
 
     return rows.map(mapMovieLogRowToDomain);
@@ -110,4 +116,29 @@ const mapMovieLogRowToDomain = (row: MovieLogRow): MovieLog => {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+};
+
+const assertWatchedOnDate = (date: string): void => {
+  if (!WATCHED_ON_DATE_PATTERN.test(date)) {
+    throw new Error(`Invalid watchedOn date: ${date}`);
+  }
+};
+
+const createWatchedOnMonthRange = (month: string): [string, string] => {
+  if (!WATCHED_ON_MONTH_PATTERN.test(month)) {
+    throw new Error(`Invalid watchedOn month: ${month}`);
+  }
+
+  const [yearPart, monthPart] = month.split('-');
+  const year = Number(yearPart);
+  const numericMonth = Number(monthPart);
+
+  if (!Number.isInteger(year) || !Number.isInteger(numericMonth) || numericMonth < 1 || numericMonth > 12) {
+    throw new Error(`Invalid watchedOn month: ${month}`);
+  }
+
+  const nextYear = numericMonth === 12 ? year + 1 : year;
+  const nextMonth = numericMonth === 12 ? 1 : numericMonth + 1;
+
+  return [month, `${nextYear}-${String(nextMonth).padStart(2, '0')}`];
 };
