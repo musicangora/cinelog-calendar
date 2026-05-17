@@ -46,7 +46,7 @@ export const DEFAULT_RATINGS: Ratings = {
   rewatch: 0,
 };
 
-export function normalizeRatingValue(value: number): number {
+export const normalizeRatingValue = (value: number): number => {
   if (!Number.isFinite(value)) {
     return RATING_MIN;
   }
@@ -54,9 +54,9 @@ export function normalizeRatingValue(value: number): number {
   const clamped = Math.min(RATING_MAX, Math.max(RATING_MIN, value));
 
   return Math.round(clamped / RATING_STEP) * RATING_STEP;
-}
+};
 
-export function normalizeRatings(ratings: Partial<Ratings>): Ratings {
+export const normalizeRatings = (ratings: Partial<Ratings>): Ratings => {
   return {
     story: normalizeRatingValue(ratings.story ?? DEFAULT_RATINGS.story),
     character: normalizeRatingValue(ratings.character ?? DEFAULT_RATINGS.character),
@@ -64,10 +64,10 @@ export function normalizeRatings(ratings: Partial<Ratings>): Ratings {
     music: normalizeRatingValue(ratings.music ?? DEFAULT_RATINGS.music),
     rewatch: normalizeRatingValue(ratings.rewatch ?? DEFAULT_RATINGS.rewatch),
   };
-}
+};
 
-export function calculateTotalScore(ratings: Ratings): number {
+export const calculateTotalScore = (ratings: Ratings): number => {
   const normalizedRatings = normalizeRatings(ratings);
 
   return RATING_KEYS.reduce((total, key) => total + normalizedRatings[key] * 4, 0);
-}
+};
