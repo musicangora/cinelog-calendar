@@ -25,6 +25,8 @@ type MovieLogRow = {
   updated_at: string;
 };
 
+const WATCHED_ON_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
 export class SQLiteMovieLogRepository implements MovieLogRepository {
   constructor(private readonly database: SQLiteDatabase) {}
 
@@ -205,10 +207,11 @@ const mapMovieLogRowToDomain = (row: MovieLogRow): MovieLog => {
 const buildMovieLogForCreate = (input: CreateMovieLogInput): MovieLog => {
   const normalizedRatings = normalizeRatings(input.ratings);
   const createdAt = createTimestamp();
+  const watchedOn = assertWatchedOnDate(input.watchedOn);
 
   return {
     id: createMovieLogId(),
-    watchedOn: input.watchedOn,
+    watchedOn,
     title: input.title,
     ratings: normalizedRatings,
     totalScore: calculateTotalScore(normalizedRatings),
@@ -220,10 +223,11 @@ const buildMovieLogForCreate = (input: CreateMovieLogInput): MovieLog => {
 
 const buildMovieLogForUpdate = (input: UpdateMovieLogInput, createdAt: string): MovieLog => {
   const normalizedRatings = normalizeRatings(input.ratings);
+  const watchedOn = assertWatchedOnDate(input.watchedOn);
 
   return {
     id: input.id,
-    watchedOn: input.watchedOn,
+    watchedOn,
     title: input.title,
     ratings: normalizedRatings,
     totalScore: calculateTotalScore(normalizedRatings),
@@ -235,6 +239,14 @@ const buildMovieLogForUpdate = (input: UpdateMovieLogInput, createdAt: string): 
 
 const createMovieLogId = (): string => {
   return `log_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const assertWatchedOnDate = (value: string): string => {
+  if (!WATCHED_ON_DATE_PATTERN.test(value)) {
+    throw new Error(`Invalid watchedOn date: ${value}`);
+  }
+
+  return value;
 };
 
 const createTimestamp = (): string => {
