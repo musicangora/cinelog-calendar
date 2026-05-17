@@ -1,6 +1,12 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import type { CreateMovieLogInput, MovieLog, UpdateMovieLogInput } from '@/src/domain';
+import {
+  calculateTotalScore,
+  normalizeRatings,
+  type CreateMovieLogInput,
+  type MovieLog,
+  type UpdateMovieLogInput,
+} from '@/src/domain';
 
 import type { MovieLogRepository } from './movie-log-repository';
 
@@ -73,17 +79,101 @@ export class SQLiteMovieLogRepository implements MovieLogRepository {
 
   async create(_input: CreateMovieLogInput): Promise<MovieLog> {
     this.assertDatabaseReady();
-    throw new Error('SQLiteMovieLogRepository.create is not implemented yet.');
+
+    const movieLog = buildMovieLogForCreate(_input);
+
+    await this.database.runAsync(
+      `INSERT INTO movie_logs (
+        id,
+        watched_on,
+        title,
+        story,
+        character,
+        visual,
+        music,
+        rewatch,
+        total_score,
+        note,
+        created_at,
+        updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        movieLog.id,
+        movieLog.watchedOn,
+        movieLog.title,
+        movieLog.ratings.story,
+        movieLog.ratings.character,
+        movieLog.ratings.visual,
+        movieLog.ratings.music,
+        movieLog.ratings.rewatch,
+        movieLog.totalScore,
+        movieLog.note,
+        movieLog.createdAt,
+        movieLog.updatedAt,
+      ]
+    );
+
+    return movieLog;
   }
 
-  async update(_input: UpdateMovieLogInput): Promise<MovieLog> {
+  async update(input: UpdateMovieLogInput): Promise<MovieLog> {
     this.assertDatabaseReady();
-    throw new Error('SQLiteMovieLogRepository.update is not implemented yet.');
+
+    const existingMovieLog = await this.getById(input.id);
+
+    if (!existingMovieLog) {
+      throw new Error(`Movie log not found: ${input.id}`);
+    }
+
+    const movieLog = buildMovieLogForUpdate(input, existingMovieLog.createdAt);
+
+    const result = await this.database.runAsync(
+      `UPDATE movie_logs
+       SET watched_on = ?,
+           title = ?,
+           story = ?,
+           character = ?,
+           visual = ?,
+           music = ?,
+           rewatch = ?,
+           total_score = ?,
+           note = ?,
+           updated_at = ?
+       WHERE id = ?`,
+      [
+        movieLog.watchedOn,
+        movieLog.title,
+        movieLog.ratings.story,
+        movieLog.ratings.character,
+        movieLog.ratings.visual,
+        movieLog.ratings.music,
+        movieLog.ratings.rewatch,
+        movieLog.totalScore,
+        movieLog.note,
+        movieLog.updatedAt,
+        movieLog.id,
+      ]
+    );
+
+    if (result.changes === 0) {
+      throw new Error(`Movie log not found: ${input.id}`);
+    }
+
+    return movieLog;
   }
 
-  async delete(_id: string): Promise<void> {
+  async delete(id: string): Promise<void> {
     this.assertDatabaseReady();
-    throw new Error('SQLiteMovieLogRepository.delete is not implemented yet.');
+
+    const result = await this.database.runAsync(
+      `DELETE FROM movie_logs
+       WHERE id = ?`,
+      [id]
+    );
+
+    if (result.changes === 0) {
+      throw new Error(`Movie log not found: ${id}`);
+    }
   }
 
   private assertDatabaseReady(): void {
@@ -110,4 +200,43 @@ const mapMovieLogRowToDomain = (row: MovieLogRow): MovieLog => {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+};
+
+const buildMovieLogForCreate = (input: CreateMovieLogInput): MovieLog => {
+  const normalizedRatings = normalizeRatings(input.ratings);
+  const createdAt = createTimestamp();
+
+  return {
+    id: createMovieLogId(),
+    watchedOn: input.watchedOn,
+    title: input.title,
+    ratings: normalizedRatings,
+    totalScore: calculateTotalScore(normalizedRatings),
+    note: input.note,
+    createdAt,
+    updatedAt: createdAt,
+  };
+};
+
+const buildMovieLogForUpdate = (input: UpdateMovieLogInput, createdAt: string): MovieLog => {
+  const normalizedRatings = normalizeRatings(input.ratings);
+
+  return {
+    id: input.id,
+    watchedOn: input.watchedOn,
+    title: input.title,
+    ratings: normalizedRatings,
+    totalScore: calculateTotalScore(normalizedRatings),
+    note: input.note,
+    createdAt,
+    updatedAt: createTimestamp(),
+  };
+};
+
+const createMovieLogId = (): string => {
+  return `log_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const createTimestamp = (): string => {
+  return new Date().toISOString();
 };
