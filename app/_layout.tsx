@@ -1,8 +1,15 @@
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
+import { initializeDatabase } from '@/src/database';
+
 export default function RootLayout() {
+  useEffect(() => {
+    void initializeDatabase();
+  }, []);
+
   return (
     <>
       <Stack>
